@@ -1,0 +1,23 @@
+{
+  "name": "tsrewinder",
+  "version": "0.0.1",
+  "description": "Library that makes refactoring typescript code easy.",
+  "main": "dist/lib.js",
+  "scripts": {
+    "test": "mocha dist/**/*.spec.js || true",
+    "build": "tsc"
+  },
+  "keywords": [
+    "TypeScript",
+    "refactoring"
+  ],
+  "author": "Jeff Swenson",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/chai": "^3.4.34",
+    "@types/mocha": "^2.2.32",
+    "chai": "^3.5.0",
+    "mocha": "^3.1.2",
+    "typescript": "^2.0.6"
+  }
+}
