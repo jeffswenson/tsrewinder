@@ -5,7 +5,10 @@
   "main": "dist/lib.js",
   "scripts": {
     "test": "mocha dist/**/*.spec.js || true",
-    "build": "tsc"
+    "test:w": "mocha dist/**/*.spec.js -w",
+    "build": "tsc",
+    "build:w": "tsc -w",
+    "watch": "concurrently \"npm run test:w\" \"npm run build:w\""
   },
   "keywords": [
     "TypeScript",
@@ -17,7 +20,12 @@
     "@types/chai": "^3.4.34",
     "@types/mocha": "^2.2.32",
     "chai": "^3.5.0",
+    "concurrently": "^3.1.0",
     "mocha": "^3.1.2",
-    "typescript": "^2.0.6"
+    "typescript": "^2.1.0-dev.20161026"
+  },
+  "dependencies": {
+    "@types/glob": "^5.0.30",
+    "glob": "^7.1.1"
   }
 }

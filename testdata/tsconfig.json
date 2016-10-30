@@ -12,8 +12,5 @@
   },
   "compileOnSave": false,
   "exclude": [
-    "build",
-    "node_modules",
-    "testdata"
   ]
 }
