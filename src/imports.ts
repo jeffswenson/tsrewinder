@@ -19,9 +19,9 @@
  */
 
 import * as ts from 'typescript';
-import "mocha";
+import * as _ from "lodash";
 
-import {findNodes} from './astutil';
+import {getNodeText, findNodes, findNextNode} from './astutil';
 
 export function findAllImports(ast : ts.Node) : ts.ImportDeclaration [] {
     return findNodes(ast, node => node.kind === ts.SyntaxKind.ImportDeclaration) as (ts.ImportDeclaration []);
@@ -32,79 +32,54 @@ export function findAllImports(ast : ts.Node) : ts.ImportDeclaration [] {
  * @param  import Declaration that is being debundled.
  * @return Edits that should be applied.
  */
-export function getEditsToDebundle(declaration : ts.ImportDeclaration) : ts.TextChange [] {
+export function getEditsToDebundle(declaration : ts.ImportDeclaration, languageService : ts.LanguageService) : ts.TextChange [] {
     let importFrom = (declaration.moduleSpecifier as ts.StringLiteral).text;
-    let namedImports = findNodes(declaration, node => node.kind === ts.SyntaxKind.NamedImports);
+    let currentFileName = declaration.getSourceFile().fileName;
+    let namedImports = findNodes(declaration, node => node.kind === ts.SyntaxKind.ImportSpecifier) as ts.ImportSpecifier [];
 
-    if (_isExternalModule(importFrom) || _isStaticImport(declaration) || namedImports.length === 0) {
+    if (_isExternalModule(importFrom) || !_hasInternalBarreledImports(namedImports)) {
         return [];
     }
 
-    // Quit if it is an exteranl import
-    // Quit if it is a static import
+    let importStatements : string[] = [];
+    let moduleSpecifier = declaration.moduleSpecifier;
 
-    // How to handle each type
-    // Default - Pass it through unmodified
-    // Namespace - Pass it through unmodified
-    // Named - If it is declared in a different file, split it into its own import
-    // Static - Ignore It
-
-    // Find all identifiers being imported
-
-    // For each import, determine where it is being imported from
-
-    // Determine the imports in debundled form
-
-    // Produce the edit required to delete the previous import and add the new import
-
-    return [{}] as any;
-}
-
-export interface ImportFields {
-    moduleName : string,
-    defaultImport? : ImportedSymbol,
-    namespaceImport? : ImportedSymbol,
-    namedImports? : ImportedSymbol []
-}
-
-export interface ImportedSymbol {
-    name : string,
-    alias : string
-}
-
-export function importDeclarationToImportFields(declaration : ts.ImportDeclaration) {
-
-}
-
-export function importFieldsToString(fields : ImportFields) {
-    let imports : string [] = [];
-
-    if (fields.defaultImport) {
-        imports.push(_importSymbol(fields.defaultImport));
+    let defaultImport = declaration.importClause.name;
+    if (defaultImport) {
+        importStatements.push(`import ${getNodeText(defaultImport)} from ${getNodeText(moduleSpecifier)}`);
     }
 
-    if (fields.namespaceImport) {
-        imports.push(_importSymbol(fields.namespaceImport));
+    let namespaceImport = findNextNode(declaration, node => node.kind === ts.SyntaxKind.NamespaceImport) as ts.NamespaceImport;
+    if (namespaceImport) {
+        importStatements.push(`import ${getNodeText(namespaceImport)} from ${getNodeText(moduleSpecifier)}`);
     }
 
-    if (fields.namedImports && fields.namedImports.length > 0) {
-        let namedImports = fields.namedImports.map(_importSymbol);
-        imports.push(`{${namedImports.join(", ")}}`);
+    let namedImportsByFile = _.groupBy(namedImports, s => _findSymbolSource(s, languageService) || currentFileName);
+    for (var fileName in namedImportsByFile) {
+        let importClause = `{${namedImportsByFile[fileName].join(", ")}}`;
+        importStatements.push(`import ${importClause} from "${namedImportsByFile}"`);
     }
 
-    if (imports.length === 0) {
-        return `import '${fields.moduleName}'`;
-    } else {
-        return `import ${imports.join(", ")} from '${fields.moduleName}'`;
-    }
+    //TODO convert to an edit
+    return importStatements as any;
 }
 
-function _importSymbol(importedSymbol : ImportedSymbol) {
-    if (importedSymbol.alias && importedSymbol.alias !== importedSymbol.name) {
-        return `${importedSymbol.name} as ${importedSymbol.alias}`;
-    } else {
-        return importedSymbol.name;
+function _hasInternalBarreledImports(namedImports : ts.ImportSpecifier[]) {
+    return namedImports.length > 0; //TODO : Update this so that it checks destination
+}
+
+function _findSymbolSource(specifier : ts.ImportSpecifier, languageService : ts.LanguageService) : string | null {
+    let source : string = null;
+
+    let file = specifier.getSourceFile().fileName;
+    let position = specifier.pos;
+    let declarations = languageService.getDefinitionAtPosition(file, position);
+
+    if (declarations.length === 1) {
+        source = declarations[0].fileName;
     }
+
+    return source;
 }
 
 function _isExternalModule(moduleName : string) {

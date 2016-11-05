@@ -25,6 +25,15 @@
     return nodes;
  }
 
+ export function findNextNode(ast : ts.Node, includeIf : (node : ts.Node) => boolean) {
+     let nodes = findNodes(ast, includeIf);
+     if (nodes.length === 0) {
+         return null;
+     } else {
+         return nodes[0];
+     }
+ }
+
 export function getNodeText(ast : ts.Node) {
     let sourceFile = ast.getSourceFile();
     return sourceFile.text.slice(ast.pos, ast.end);

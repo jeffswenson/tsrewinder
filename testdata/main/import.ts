@@ -1,4 +1,3 @@
-import Default, {helloWorld} from './function';
-import "./function";
-
-console.log(helloWorld);
+import * as Namespace from './barrel';
+import {aFunction} from './barrel';
+import './barrel';

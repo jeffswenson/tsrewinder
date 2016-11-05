@@ -12,6 +12,22 @@ export function main() {
     return findAllImports(file);
 }
 
+export function getProgram(glob : string = 'testdata/main/**/*.ts') {
+    let host = createServiceHost(glob);
+    let languageService = ts.createLanguageService(host);
+    let program = languageService.getProgram();
+    return program;
+}
+
+export function getThings() {
+    //things = require('./dist/main').getThings(); host = things[0]; service = things[1]; program = things[2]; file = things[3]; findAllImports = things[4];
+    let host = createServiceHost('testdata/main/**/*.ts');
+    let languageService = ts.createLanguageService(host);
+    let program = languageService.getProgram();
+    let file = program.getSourceFile('testdata/main/import.ts');
+    return [host, languageService, program, file, findAllImports];
+}
+
 /**
  * Unbundle all TS files found in the glob.
  * @param  glob Glob accepted by node glob.
