@@ -3,7 +3,7 @@ import {expect} from "chai";
 import * as ts from "typescript";
 
 import {replaceNode, applyEdits} from './edit';
-import {parse, } from './astutil'
+import {parse, findNextNode} from './astutil'
 
 describe("applyEdits", function() {
     it("returns the source string unmodified if there are no edits", function() {
@@ -63,32 +63,48 @@ describe("applyEdits", function() {
     });
 
     it("thows if an edit starts out of range", function() {
+        let string = "     PUTITHERE    ";
         let editA = {
             span : {
-                start: "     PUTITHERE    ".length,
-                length: "PUTITHERE".length
+                start: string.length + 1,
+                length: 0
             },
             newText: "THIS"
         }
 
-        expect(() => applyEdits("     PUTITHERE     ", [editA])).to.throw(Error);
+        expect(() => applyEdits(string, [editA])).to.throw(Error);
     });
 
     it("thows if an edit ends out of range", function() {
+        let string = "     PUTITHERE     ";
         let editA = {
             span : {
-                start: "     PUTITHERE    ".length - 1,
+                start: string.length - 1,
                 length: 2
             },
             newText: "THIS"
         }
-        expect(() => applyEdits("     PUTITHERE     ", [editA])).to.throw(Error);
+        expect(() => applyEdits(string, [editA])).to.throw(Error);
+    });
+
+    it("allows replacing an entire string", function() {
+        let string = "THISISIT"
+        let editA = {
+            span : {
+                start: 0,
+                length: string.length
+            },
+            newText: "NOW"
+        }
+        expect(applyEdits(string, [editA])).to.equal("NOW");
     });
 });
 
 describe("replaceNode", function() {
     it("can replace imports", function() {
-
-        expect(true).to.equal(false);
+        let src = 'import Defult from "afile"';
+        let node = findNextNode(parse(src), node => node.kind === ts.SyntaxKind.ImportDeclaration);
+        let edit = replaceNode(node, "THIS");
+        expect(applyEdits(src, [edit])).to.equal("THIS");
     });
 });

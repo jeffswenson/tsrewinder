@@ -3,6 +3,7 @@
  */
 
  import * as ts from "typescript";
+ import * as _ from "lodash";
 
  export function parse(text : string) {
      let ast = ts.createSourceFile("DYNAMIC_FILE", text, ts.ScriptTarget.ES2016, true);
@@ -36,5 +37,5 @@
 
 export function getNodeText(ast : ts.Node) {
     let sourceFile = ast.getSourceFile();
-    return sourceFile.text.slice(ast.pos, ast.end);
+    return _.trim(sourceFile.text.slice(ast.pos, ast.end));
 }

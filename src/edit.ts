@@ -10,7 +10,7 @@ export function replaceNode(node : ts.Node, text : string) : ts.TextChange {
     return {
         span: {
             start: node.pos,
-            length: node.pos - node.end
+            length: node.end - node.pos
         },
         newText: text
     }
@@ -42,7 +42,7 @@ export function applyEdits(sourceText : string, edits : ts.TextChange []) {
     }
     pieces.push(sourceText.substring(currentPosition, sourceText.length));
 
-    if (currentPosition >= sourceText.length) {
+    if (currentPosition > sourceText.length) {
         throw Error("The edits given to applyEdits did not stay within the source string. This would cause corruption, because the original text would not be removed as expected.");
     }
 

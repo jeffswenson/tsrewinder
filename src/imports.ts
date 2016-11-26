@@ -20,8 +20,10 @@
 
 import * as ts from 'typescript';
 import * as _ from "lodash";
+import * as path from "path";
 
 import {getNodeText, findNodes, findNextNode} from './astutil';
+import {replaceNode} from './edit';
 
 export function findAllImports(ast : ts.Node) : ts.ImportDeclaration [] {
     return findNodes(ast, node => node.kind === ts.SyntaxKind.ImportDeclaration) as (ts.ImportDeclaration []);
@@ -37,7 +39,7 @@ export function getEditsToDebundle(declaration : ts.ImportDeclaration, languageS
     let currentFileName = declaration.getSourceFile().fileName;
     let namedImports = findNodes(declaration, node => node.kind === ts.SyntaxKind.ImportSpecifier) as ts.ImportSpecifier [];
 
-    if (_isExternalModule(importFrom) || !_hasInternalBarreledImports(namedImports)) {
+    if (_isExternalModule(importFrom) || !_hasInternalBarreledImports(namedImports, languageService)) {
         return [];
     }
 
@@ -56,16 +58,24 @@ export function getEditsToDebundle(declaration : ts.ImportDeclaration, languageS
 
     let namedImportsByFile = _.groupBy(namedImports, s => _findSymbolSource(s, languageService) || currentFileName);
     for (var fileName in namedImportsByFile) {
-        let importClause = `{${namedImportsByFile[fileName].join(", ")}}`;
-        importStatements.push(`import ${importClause} from "${namedImportsByFile}"`);
+        let importClause = `{${namedImportsByFile[fileName].map(getNodeText).join(", ")}}`;
+        importStatements.push(`import ${importClause} from "${fileName}"`);
     }
 
-    //TODO convert to an edit
-    return importStatements as any;
+    if (importStatements.length === 0) {
+        return [];
+    } else {
+        return [replaceNode(declaration, importStatements.join("\n"))];
+    }
 }
 
-function _hasInternalBarreledImports(namedImports : ts.ImportSpecifier[]) {
-    return namedImports.length > 0; //TODO : Update this so that it checks destination
+function _hasInternalBarreledImports(namedImports : ts.ImportSpecifier[], languageService : ts.LanguageService) {
+    for (var imp of namedImports) {
+        if (path.normalize(_findSymbolSource(imp, languageService)) !== path.normalize(imp.getSourceFile().fileName)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 function _findSymbolSource(specifier : ts.ImportSpecifier, languageService : ts.LanguageService) : string | null {
