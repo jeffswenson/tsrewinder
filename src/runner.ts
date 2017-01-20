@@ -16,6 +16,7 @@ export interface RunnerContext {
     languageService : ts.LanguageService,
     languageHost : ts.LanguageServiceHost,
     compilerHost : ts.CompilerHost,
+    log : (text:string) => void,
     files : string []
 }
 
@@ -28,15 +29,25 @@ export function createContext(globString : string) : RunnerContext {
         files,
         compilerHost,
         languageHost,
-        languageService
+        languageService,
+        log : console.log
     }
 }
 
 export function runFileTransform(transform : FileTransform, runnerContext : RunnerContext) {
-    let edits : {[fileName:string]:ts.TextChange[]};
+    let edits : {[fileName:string]:ts.TextChange[]} = {};
+    let program = runnerContext.languageService.getProgram();
+
     for (let file of runnerContext.files) {
-        //TODO Log Edits to the Console
+        let parsedFile = program.getSourceFile(file);
+        let fileEdits = transform(parsedFile, runnerContext);
+
+        if (fileEdits.length > 0) {
+            edits[file] = fileEdits;
+        }
     }
+
+    return edits;
 }
 
 export function nodeToFileTransform(transform : NodeTransform, nodesMatching : (node : ts.Node) => boolean) : FileTransform {
